@@ -203,7 +203,7 @@ namespace Graphs
                     context.Variables["t"] = tVal; // Note: This uses t as the parameter
                     points.Add(new Point3D(exX.Evaluate(), exY.Evaluate(), exZ.Evaluate()));
                 }
-                View.Children.Add(new LinesVisual3D { Points = points, Color = GetRandomBrightColor(), Thickness = 1 });
+                View.Children.Add(new LinesVisual3D { Points = points, Color = GetRandomBrightColor(), Thickness = 3 });
             }
             catch { MessageBox.Show("Ensure format: x(t), y(t), z(t)"); }
         }
