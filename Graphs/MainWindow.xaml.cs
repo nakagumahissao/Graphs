@@ -1,10 +1,16 @@
 ﻿using HelixToolkit.Wpf;
+using Microsoft.Data.Sqlite;
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Numerics;
 using System.Windows;
+using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
+using SQLitePCL;
+using System.IO;
 
 namespace Graphs
 {
@@ -13,11 +19,50 @@ namespace Graphs
         public enum PlotType { Function, Parametric, Polar, Point, Vector, Plane };
         private PlotType CurrentPlotType = PlotType.Function;
         private double _time = 0;
+        private string ConnectionString = "Data Source=graphs.db";
+        private ObservableCollection<graphs_model> _graphs = new ObservableCollection<graphs_model>();
+
+        // Loads the data from or sqlite database
+        private void LoadEquationsFromDatabase()
+        {
+            _graphs.Clear();
+
+            var connection = new SqliteConnection(ConnectionString);
+            connection.Open();
+
+            var cmd = connection.CreateCommand();
+
+            cmd.CommandText = @"SELECT id, graphname, graphequation, graphtype, u1, u2, v1, v2, meshstep FROM graphs";
+
+            var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                _graphs.Add(new graphs_model
+                {
+                    Id = reader.GetInt32(0),
+                    GraphName = reader.GetString(1),
+                    GraphEquation = reader.GetString(2),
+                    GraphType = reader.GetInt32(3),
+                    U1 = reader.GetDouble(4),
+                    U2 = reader.GetDouble(5),
+                    V1 = reader.GetDouble(6),
+                    V2 = reader.GetDouble(7),
+                    MeshStep = reader.GetDouble(8)
+                });
+            }
+
+            EquationsComboBox.ItemsSource = _graphs;
+
+            reader.Close();
+            cmd = null;
+            connection.Close();
+        }
 
         public MainWindow()
         {
             InitializeComponent();
             View.Children.Clear();
+            LoadEquationsFromDatabase();
             SetupScene();
         }
 
@@ -298,13 +343,92 @@ namespace Graphs
 
         private void BtnClear_Click(object sender, RoutedEventArgs e) { View.Children.Clear(); SetupScene(); }
 
-        private void rbFunction_Click(object sender, RoutedEventArgs e) { CurrentPlotType = PlotType.Function; EquationBox.Text = "Sin(Sqrt(x*x + y*y) - t)"; }
-        private void rbPolar_Click(object sender, RoutedEventArgs e) { CurrentPlotType = PlotType.Polar; EquationBox.Text = "Sin(5*theta + t)"; }
-        private void rbParametric_Click(object sender, RoutedEventArgs e) { CurrentPlotType = PlotType.Parametric; EquationBox.Text = "Sin(t), Cos(t), t/10"; }
-        private void Point_Click(object sender, RoutedEventArgs e) { CurrentPlotType = PlotType.Point; EquationBox.Text = "1, 2, 1"; }
-        private void rbVector_Click(object sender, RoutedEventArgs e) { CurrentPlotType = PlotType.Vector; EquationBox.Text = "-2, 2, 3"; }
-        private void rbPlane_Click(object sender, RoutedEventArgs e) { CurrentPlotType = PlotType.Plane; EquationBox.Text = "u, v, Sin(u+t)*Cos(v+t)"; }
+        private void rbFunction_Click(object sender, RoutedEventArgs e) { txtEquationName.Text = ""; CurrentPlotType = PlotType.Function; EquationBox.Text = "Sin(Sqrt(x*x + y*y) - t)"; }
+        private void rbPolar_Click(object sender, RoutedEventArgs e) { txtEquationName.Text = ""; CurrentPlotType = PlotType.Polar; EquationBox.Text = "Sin(5*theta + t)"; }
+        private void rbParametric_Click(object sender, RoutedEventArgs e) { txtEquationName.Text = ""; CurrentPlotType = PlotType.Parametric; EquationBox.Text = "Sin(t), Cos(t), t/10"; }
+        private void Point_Click(object sender, RoutedEventArgs e) { txtEquationName.Text = ""; CurrentPlotType = PlotType.Point; EquationBox.Text = "1, 2, 1"; }
+        private void rbVector_Click(object sender, RoutedEventArgs e) { txtEquationName.Text = ""; CurrentPlotType = PlotType.Vector; EquationBox.Text = "-2, 2, 3"; }
+        private void rbPlane_Click(object sender, RoutedEventArgs e) { txtEquationName.Text = ""; CurrentPlotType = PlotType.Plane; EquationBox.Text = "u, v, Sin(u+t)*Cos(v+t)"; }
 
         private bool IsInvalid(params double[] values) => values.Any(v => double.IsNaN(v) || double.IsInfinity(v));
+
+        private void btLoad_Click(object sender, RoutedEventArgs e)
+        {
+            // Load the list of available equations from our database
+            LoadEquationsFromDatabase();
+        }
+
+        private void SaveEquationToDatabase()
+        {
+            // Saves the equation to our database
+            var connection = new SqliteConnection(ConnectionString);
+            connection.Open();
+            var cmd = connection.CreateCommand();
+            cmd.CommandText = @"INSERT INTO graphs (graphname, graphequation, graphtype, u1, u2, v1, v2, meshstep) 
+                                VALUES ($name, $equation, $graphtype, $u1, $u2, $v1, $v2, $step)";
+            cmd.Parameters.AddWithValue("$name", txtEquationName.Text);
+            cmd.Parameters.AddWithValue("$equation", EquationBox.Text);
+            cmd.Parameters.AddWithValue("$graphtype", (int)CurrentPlotType);
+            cmd.Parameters.AddWithValue("$u1", double.Parse(UMinBox.Text));
+            cmd.Parameters.AddWithValue("$u2", double.Parse(UMaxBox.Text));
+            cmd.Parameters.AddWithValue("$v1", double.Parse(VMinBox.Text));
+            cmd.Parameters.AddWithValue("$v2", double.Parse(VMaxBox.Text));
+            cmd.Parameters.AddWithValue("$step", double.Parse(StepBox.Text));
+            cmd.ExecuteNonQuery();
+            cmd = null;
+            connection.Close();
+
+            MessageBox.Show("Equation saved to database.");
+        }
+
+        private void btSaveEquation_Click(object sender, RoutedEventArgs e)
+        {
+            // Saves the equation to our database
+            _graphs.Add(new graphs_model
+            {
+                GraphName = txtEquationName.Text,
+                GraphEquation = EquationBox.Text,
+                GraphType = (int)CurrentPlotType,
+                U1 = double.Parse(UMinBox.Text),
+                U2 = double.Parse(UMaxBox.Text),
+                V1 = double.Parse(VMinBox.Text),
+                V2 = double.Parse(VMaxBox.Text),
+                MeshStep = double.Parse(StepBox.Text)
+            });
+
+            SaveEquationToDatabase();
+        }
+
+        private void btLoad_Click_1(object sender, RoutedEventArgs e)
+        {
+            // Clear
+            BtnClear_Click(sender, e);
+
+            // Load the selected equation from the list
+            graphs_model mdl = _graphs.FirstOrDefault(w => w.Id == (int)EquationsComboBox.SelectedValue);
+
+            if (mdl != null)
+            {
+                EquationBox.Text = mdl.GraphEquation;
+
+                // Graph type
+                switch (mdl.GraphType)
+                {
+                    case 0: rbFunction.IsChecked = true; CurrentPlotType = PlotType.Function; break;
+                    case 1: rbParametric.IsChecked = true; CurrentPlotType = PlotType.Parametric; break;
+                    case 2: rbPolar.IsChecked = true; CurrentPlotType = PlotType.Polar; break;
+                    case 3: Point.IsChecked = true; CurrentPlotType = PlotType.Point; break;
+                    case 4: rbVector.IsChecked = true; CurrentPlotType = PlotType.Vector; break;
+                    case 5: rbPlane.IsChecked = true; CurrentPlotType = PlotType.Plane; break;
+                }
+
+                UMinBox.Text = mdl.U1.ToString();
+                UMaxBox.Text = mdl.U2.ToString();
+                VMinBox.Text = mdl.V1.ToString();
+                VMaxBox.Text = mdl.V2.ToString();
+                StepBox.Text = mdl.MeshStep.ToString();
+                txtEquationName.Text = mdl.GraphName;
+            }
+        }
     }
 }
