@@ -148,8 +148,8 @@ namespace Graphs
             View.Camera.LookDirection = new Vector3D(-10, 15, -10);
             View.Camera.UpDirection = new Vector3D(0, 0, 1);
 
-            View.Children.Add(new LinesVisual3D { Color = ((SolidColorBrush)GetVibrantBrush()).Color, Points = new Point3DCollection { new Point3D(Convert.ToDouble(UMinBox.Text), 0, 0), new Point3D(Convert.ToDouble(UMaxBox.Text), 0, 0) } });
-            View.Children.Add(new LinesVisual3D { Color = ((SolidColorBrush)GetVibrantBrush()).Color, Points = new Point3DCollection { new Point3D(0, Convert.ToDouble(VMinBox.Text), 0), new Point3D(0, Convert.ToDouble(VMaxBox.Text), 0) } });
+            View.Children.Add(new LinesVisual3D { Color = ((SolidColorBrush)GetVibrantBrush()).Color, Points = new Point3DCollection { new Point3D(1.5 * Convert.ToDouble(UMinBox.Text), 0, 0), new Point3D(1.5 * Convert.ToDouble(UMaxBox.Text), 0, 0) } });
+            View.Children.Add(new LinesVisual3D { Color = ((SolidColorBrush)GetVibrantBrush()).Color, Points = new Point3DCollection { new Point3D(0, 1.5 * Convert.ToDouble(VMinBox.Text), 0), new Point3D(0, 1.5 * Convert.ToDouble(VMaxBox.Text), 0) } });
             View.Children.Add(new LinesVisual3D { Color = ((SolidColorBrush)GetVibrantBrush()).Color, Points = new Point3DCollection { new Point3D(0, 0, -20), new Point3D(0, 0, 20) } });
 
             View.Children.Add(new GridLinesVisual3D { Fill = GetVibrantBrush(), Width = 0.02, Length = 0.02 });
