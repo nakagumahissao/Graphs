@@ -19,13 +19,28 @@ namespace Graphs
         public enum PlotType { Function, Parametric, Polar, Point, Vector, Plane };
         private PlotType CurrentPlotType = PlotType.Function;
         private double _time = 0;
-        private string ConnectionString = "Data Source=graphs.db";
+        private string ConnectionString = "";
         private ObservableCollection<graphs_model> _graphs = new ObservableCollection<graphs_model>();
+
+        private string GetConnectionString()
+        {
+            string graphsFolder = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "Graphs");
+
+            Directory.CreateDirectory(graphsFolder);
+
+            string dbPath = Path.Combine(graphsFolder, "graphs.db");
+
+            return $"Data Source={dbPath}";
+        }
 
         // Loads the data from or sqlite database
         private void LoadEquationsFromDatabase()
         {
             _graphs.Clear();
+
+            ConnectionString = GetConnectionString();
 
             var connection = new SqliteConnection(ConnectionString);
             connection.Open();
@@ -361,7 +376,9 @@ namespace Graphs
         private void SaveEquationToDatabase()
         {
             // Saves the equation to our database
+            ConnectionString = GetConnectionString();
             var connection = new SqliteConnection(ConnectionString);
+
             connection.Open();
             var cmd = connection.CreateCommand();
             cmd.CommandText = @"INSERT INTO graphs (graphname, graphequation, graphtype, u1, u2, v1, v2, meshstep) 
@@ -383,6 +400,15 @@ namespace Graphs
 
         private void btSaveEquation_Click(object sender, RoutedEventArgs e)
         {
+            // Check name existence
+            bool exists = _graphs.Any(g => g.GraphName.Equals(txtEquationName.Text, StringComparison.OrdinalIgnoreCase));
+
+            if (exists)
+            {
+                MessageBox.Show("An equation with this name already exists. Please choose a different name.");
+                return;
+            }
+
             // Saves the equation to our database
             _graphs.Add(new graphs_model
             {
