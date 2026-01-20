@@ -78,7 +78,6 @@ namespace Graphs
             InitializeComponent();
             View.Children.Clear();
             LoadEquationsFromDatabase();
-            SetupScene();
         }
 
         // ==========================================
@@ -149,9 +148,9 @@ namespace Graphs
             View.Camera.LookDirection = new Vector3D(-10, 15, -10);
             View.Camera.UpDirection = new Vector3D(0, 0, 1);
 
-            View.Children.Add(new LinesVisual3D { Color = ((SolidColorBrush)GetVibrantBrush()).Color, Points = new Point3DCollection { new Point3D(-10, 0, 0), new Point3D(10, 0, 0) } });
-            View.Children.Add(new LinesVisual3D { Color = ((SolidColorBrush)GetVibrantBrush()).Color, Points = new Point3DCollection { new Point3D(0, -10, 0), new Point3D(0, 10, 0) } });
-            View.Children.Add(new LinesVisual3D { Color = ((SolidColorBrush)GetVibrantBrush()).Color, Points = new Point3DCollection { new Point3D(0, 0, -10), new Point3D(0, 0, 10) } });
+            View.Children.Add(new LinesVisual3D { Color = ((SolidColorBrush)GetVibrantBrush()).Color, Points = new Point3DCollection { new Point3D(Convert.ToDouble(UMinBox.Text), 0, 0), new Point3D(Convert.ToDouble(UMaxBox.Text), 0, 0) } });
+            View.Children.Add(new LinesVisual3D { Color = ((SolidColorBrush)GetVibrantBrush()).Color, Points = new Point3DCollection { new Point3D(0, Convert.ToDouble(VMinBox.Text), 0), new Point3D(0, Convert.ToDouble(VMaxBox.Text), 0) } });
+            View.Children.Add(new LinesVisual3D { Color = ((SolidColorBrush)GetVibrantBrush()).Color, Points = new Point3DCollection { new Point3D(0, 0, -20), new Point3D(0, 0, 20) } });
 
             View.Children.Add(new GridLinesVisual3D { Fill = GetVibrantBrush(), Width = 0.02, Length = 0.02 });
         }
@@ -345,8 +344,7 @@ namespace Graphs
         private void OnRendering(object sender, EventArgs e)
         {
             _time += 0.1;
-            View.Children.Clear();
-            SetupScene();
+            BtnClear_Click(this, null);
             Plot_Click(null, null);
         }
 
@@ -427,9 +425,6 @@ namespace Graphs
 
         private void btLoad_Click_1(object sender, RoutedEventArgs e)
         {
-            // Clear
-            BtnClear_Click(sender, e);
-
             // Load the selected equation from the list
             graphs_model mdl = _graphs.FirstOrDefault(w => w.Id == (int)EquationsComboBox.SelectedValue);
 
@@ -454,6 +449,9 @@ namespace Graphs
                 VMaxBox.Text = mdl.V2.ToString();
                 StepBox.Text = mdl.MeshStep.ToString();
                 txtEquationName.Text = mdl.GraphName;
+
+                // Clear
+                BtnClear_Click(sender, e);
             }
         }
     }
